@@ -3,8 +3,8 @@ package router
 import (
 	"net/http"
 	"strings"
-	"track/internal/user"
-	"track/middleware"
+	"glaze/internal/user"
+	"glaze/middleware"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"

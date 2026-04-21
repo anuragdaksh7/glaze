@@ -2,7 +2,7 @@ package user
 
 import (
 	"context"
-	userDto "track/dto/user"
+	userDto "glaze/dto/user"
 )
 
 type Service interface {

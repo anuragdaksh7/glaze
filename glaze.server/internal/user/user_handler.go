@@ -3,10 +3,10 @@ package user
 import (
 	"log"
 	"net/http"
-	"track/config"
-	userDto "track/dto/user"
-	"track/logger"
-	"track/models"
+	"glaze/config"
+	userDto "glaze/dto/user"
+	"glaze/logger"
+	"glaze/models"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

@@ -3,7 +3,7 @@ package logger
 import (
 	"log"
 	"os"
-	"track/config"
+	"glaze/config"
 
 	adapter "github.com/axiomhq/axiom-go/adapters/zap"
 	"github.com/axiomhq/axiom-go/axiom"

@@ -1,4 +1,4 @@
-module track
+module glaze
 
 go 1.25.2
 

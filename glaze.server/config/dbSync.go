@@ -1,6 +1,6 @@
 package config
 
-import "track/models"
+import "glaze/models"
 
 func SyncDB() {
 	err := DB.AutoMigrate(

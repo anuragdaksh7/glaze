@@ -2,11 +2,11 @@ package main
 
 import (
 	"log"
-	"track/config"
-	cacheinfra "track/infrastructure/cache"
-	"track/internal/user"
-	"track/logger"
-	"track/router"
+	"glaze/config"
+	cacheinfra "glaze/infrastructure/cache"
+	"glaze/internal/user"
+	"glaze/logger"
+	"glaze/router"
 )
 
 var _config config.Config

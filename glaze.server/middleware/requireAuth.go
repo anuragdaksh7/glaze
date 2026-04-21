@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"track/config"
-	"track/models"
+	"glaze/config"
+	"glaze/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
