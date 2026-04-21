@@ -1,0 +1,17 @@
+.logout_button {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-family: "Inter Tight";
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--Text-colors-secondary-new, #646E7D);
+  border-color: var(--Border-colors-light, #E5E9EF);
+
+  &:hover {
+    background: var(--Bg-colors-grey-light, #F9FBFF);
+  }
+}

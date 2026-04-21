@@ -1,0 +1,27 @@
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: temp_postgres_container
+    restart: always
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: temp
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_temp:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    container_name: temp_backend_container
+    restart: always
+    ports:
+      - "8080:4000"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data_temp:
+
