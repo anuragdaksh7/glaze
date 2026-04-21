@@ -1,13 +1,13 @@
 package models
 
 import (
-	"gorm.io/gorm"
+	"github.com/google/uuid"
 )
 
 type EnvVar struct {
-	gorm.Model
-	ProjectID uint   `gorm:"not null"`
-	Key       string `gorm:"not null"`
-	Value     string `gorm:"not null"` // Should be stored encrypted
-	Scope     string `gorm:"default:'all'"` // "production", "preview", or "all"
+	Base
+	ProjectID uuid.UUID `gorm:"type:uuid;not null"`
+	Key       string    `gorm:"not null"`
+	Value     string    `gorm:"not null"`      // Should be stored encrypted
+	Scope     string    `gorm:"default:'all'"` // "production", "preview", or "all"
 }

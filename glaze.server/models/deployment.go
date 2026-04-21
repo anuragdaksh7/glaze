@@ -1,14 +1,14 @@
 package models
 
 import (
-	"gorm.io/gorm"
+	"github.com/google/uuid"
 )
 
 type Deployment struct {
-	gorm.Model
-	ProjectID     uint   `gorm:"not null;index"`
-	CreatorID     uint   `gorm:"not null"`
-	CommitSHA     string `gorm:"not null"`
+	Base
+	ProjectID     uuid.UUID `gorm:"type:uuid;not null;index"`
+	CreatorID     uuid.UUID `gorm:"type:uuid;not null"`
+	CommitSHA     string    `gorm:"not null"`
 	CommitMessage string
 	Branch        string `gorm:"not null"`
 	Environment   string `gorm:"default:'preview'"` // "production" or "preview"

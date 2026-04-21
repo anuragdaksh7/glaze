@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 )
 
 var _config config.Config
@@ -64,9 +65,11 @@ func RequireAuth(c *gin.Context) {
 
 		var user models.User
 		user.Email = claims["email"].(string)
-		config.DB.First(&user, claims["id"])
+		userID := claims["id"].(string)
 
-		if user.ID == 0 {
+		config.DB.First(&user, "id = ?", userID)
+
+		if user.ID == uuid.Nil {
 			c.AbortWithStatus(http.StatusUnauthorized)
 		}
 

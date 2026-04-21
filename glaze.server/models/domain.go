@@ -1,13 +1,13 @@
 package models
 
 import (
-	"gorm.io/gorm"
+	"github.com/google/uuid"
 )
 
 type Domain struct {
-	gorm.Model
-	ProjectID uint   `gorm:"not null"`
-	Hostname  string `gorm:"uniqueIndex;not null"`
-	IsCustom  bool   `gorm:"default:false"`
-	SSLStatus string `gorm:"default:'pending'"`
+	Base
+	ProjectID uuid.UUID `gorm:"type:uuid;not null"`
+	Hostname  string    `gorm:"uniqueIndex;not null"`
+	IsCustom  bool      `gorm:"default:false"`
+	SSLStatus string    `gorm:"default:'pending'"`
 }

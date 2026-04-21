@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
-	"time"
 	"glaze/config"
 	userDto "glaze/dto/user"
 	"glaze/logger"
 	"glaze/models"
+	"log"
+	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -36,7 +37,7 @@ func (s *service) SignUp(c context.Context, req *userDto.SignUpReq) (*userDto.Si
 	}
 	var user models.User
 	s.DB.Where("email = ?", req.Email).First(&user)
-	if user.ID != 0 {
+	if user.ID != uuid.Nil {
 		logger.Logger.Error("User already exists")
 		return nil, errors.New("user already exists")
 	}
@@ -79,7 +80,7 @@ func (s *service) Login(c context.Context, req *userDto.LoginReq) (*userDto.Logi
 	var user models.User
 	s.DB.First(&user, "email = ?", req.Email)
 
-	if user.ID == 0 {
+	if user.ID == uuid.Nil {
 		logger.Logger.Error("User not found: ", zap.String("email", req.Email))
 		return nil, errors.New("user not found")
 	}
@@ -135,12 +136,12 @@ func (s *service) Login(c context.Context, req *userDto.LoginReq) (*userDto.Logi
 	}, nil
 }
 
-func (s *service) Me(c context.Context, userId uint) (*userDto.GetMeRes, error) {
+func (s *service) Me(c context.Context, userId uuid.UUID) (*userDto.GetMeRes, error) {
 	//createDefaultLinks(s)
 	var user models.User
 
 	s.DB.First(&user, "id = ?", userId)
-	if user.ID == 0 {
+	if user.ID == uuid.Nil {
 		logger.Logger.Error("User not found: ", zap.String("email", user.Email))
 		return nil, errors.New("user not found")
 	}
