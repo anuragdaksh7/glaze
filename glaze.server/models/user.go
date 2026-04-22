@@ -7,4 +7,6 @@ type User struct {
 	Password       string
 	ProfilePicture string
 	Role           string `gorm:"default:user"`
+
+	Workspaces []WorkspaceMember `gorm:"foreignKey:UserID"`
 }

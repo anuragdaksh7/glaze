@@ -33,3 +33,10 @@ type GetMeRes struct {
 	ProfilePicture string    `json:"profilePicture"`
 	Role           string    `json:"role"`
 }
+
+type WorkspaceUser struct {
+	ID             uuid.UUID `json:"id"`
+	Name           string    `json:"name"`
+	Email          string    `json:"email"`
+	ProfilePicture string    `json:"profilePicture"`
+}

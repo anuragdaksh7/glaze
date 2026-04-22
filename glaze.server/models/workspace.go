@@ -6,5 +6,5 @@ type Workspace struct {
 	Slug        string `gorm:"uniqueIndex;not null"`
 	BillingPlan string `gorm:"default:'free'"`
 	Projects    []Project
-	Members     []User `gorm:"many2many:workspace_members;"`
+	Members     []WorkspaceMember `gorm:"foreignKey:WorkspaceID"`
 }

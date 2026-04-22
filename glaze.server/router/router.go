@@ -1,10 +1,11 @@
 package router
 
 import (
+	"glaze/internal/user"
+	"glaze/internal/workspace"
+	"glaze/middleware"
 	"net/http"
 	"strings"
-	"glaze/internal/user"
-	"glaze/middleware"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,7 @@ var r *gin.Engine
 
 func InitRouter(
 	userHandler *user.Handler,
+	workspacehandler *workspace.Handler,
 ) {
 	r = gin.Default()
 	//r = gin.New()
@@ -42,6 +44,13 @@ func InitRouter(
 		userRouter.POST("/create", userHandler.SignUp)
 		userRouter.POST("/login", userHandler.LogIn)
 		userRouter.GET("/me", middleware.RequireAuth, userHandler.Me)
+	}
+
+	workspaceRouter := r.Group("/workspace")
+	{
+		workspaceRouter.GET("", middleware.RequireAuth, workspacehandler.GetAllWorkspaces)
+		workspaceRouter.POST("", middleware.RequireAuth, workspacehandler.CreateWorkspace)
+		workspaceRouter.GET("/:workspace_id", middleware.RequireAuth, workspacehandler.GetWorkspace)
 	}
 
 	//mailTestingRouter := r.Group("/mail-testing")
