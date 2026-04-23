@@ -2,24 +2,25 @@ package main
 
 import (
 	"glaze/config"
+	"glaze/global"
 	cacheinfra "glaze/infrastructure/cache"
 	"glaze/internal/user"
 	"glaze/internal/workspace"
 	"glaze/logger"
+	"glaze/models"
 	"glaze/router"
 	"log"
 )
 
-var _config config.Config
-
 func init() {
 	var err error
-	_config, err = config.LoadConfig(".")
+	global.GlobalConf, err = config.LoadConfig(".")
 	if err != nil {
 		panic(err)
 	}
 
-	logger.InitLogger(_config)
+	models.SetEncryptionKey(global.GlobalConf.EncryptKey)
+	logger.InitLogger(global.GlobalConf)
 	logger.Logger.Info("Logger initialized")
 	config.ConnectDB()
 	logger.Logger.Info("DB connection established")
@@ -42,5 +43,5 @@ func main() {
 		userHandler,
 		workspacehandler,
 	)
-	log.Fatal(router.Start("0.0.0.0:" + _config.PORT))
+	log.Fatal(router.Start("0.0.0.0:" + global.GlobalConf.PORT))
 }

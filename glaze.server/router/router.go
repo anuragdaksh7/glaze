@@ -51,6 +51,15 @@ func InitRouter(
 		workspaceRouter.GET("", middleware.RequireAuth, workspacehandler.GetAllWorkspaces)
 		workspaceRouter.POST("", middleware.RequireAuth, workspacehandler.CreateWorkspace)
 		workspaceRouter.GET("/:workspace_id", middleware.RequireAuth, workspacehandler.GetWorkspace)
+		workspaceRouter.PATCH("/:workspace_id", middleware.RequireAuth, workspacehandler.UpdateWorkspace)
+		workspaceRouter.DELETE("/:workspace_id", middleware.RequireAuth, workspacehandler.DeleteWorkspace)
+		workspaceRouter.GET("/:workspace_id/members", middleware.RequireAuth, workspacehandler.ListWorkspaceMembers)
+		workspaceRouter.PATCH("/:workspace_id/members/:user_id", middleware.RequireAuth, workspacehandler.UpdateWorkspaceMemberRole)
+		workspaceRouter.DELETE("/:workspace_id/members/:user_id", middleware.RequireAuth, workspacehandler.RemoveWorkspaceMember)
+		workspaceRouter.GET("/:workspace_id/integrations", middleware.RequireAuth, workspacehandler.GetIntegrations)
+		workspaceRouter.GET("/:workspace_id/integrations/github/connect", middleware.RequireAuth, workspacehandler.ConnectGithub)
+		workspaceRouter.GET("/:workspace_id/integrations/github/callback", middleware.RequireAuth, workspacehandler.GithubCallback)
+		workspaceRouter.DELETE("/:workspace_id/integrations/:integration_id", middleware.RequireAuth, workspacehandler.DeleteIntegration)
 	}
 
 	//mailTestingRouter := r.Group("/mail-testing")

@@ -24,6 +24,7 @@ END $$;
 		&models.Deployment{},
 		&models.Domain{},
 		&models.EnvVar{},
+		&models.Integration{},
 	)
 	if err != nil {
 		return

@@ -21,6 +21,7 @@ type Config struct {
 	AxiomDataset            string `mapstructure:"AXIOM_DATASET"`
 	MasterPassword          string `mapstructure:"MASTER_PASSWORD"`
 	GeminiAPIKey            string `mapstructure:"GEMINI_API_KEY"`
+	EncryptKey              string `mapstructure:"ENCRYPTION_KEY"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

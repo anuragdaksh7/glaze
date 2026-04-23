@@ -3,6 +3,7 @@ package workspaceDto
 import (
 	projectDto "glaze/dto/project"
 	workspaceMemberDto "glaze/dto/workspacemember"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -37,6 +38,27 @@ type CreateWorkspaceRequest struct {
 	Name string `json:"name"`
 }
 
+type UpdateWorkspaceRequest struct {
+	Name string `json:"name" binding:"required"`
+}
+
+type UpdateWorkspaceMemberRoleRequest struct {
+	Role string `json:"role" binding:"required"`
+}
+
+type WorkspaceMemberReq struct {
+	WorkspaceID string `uri:"workspace_id" binding:"required,uuid"`
+	UserID      string `uri:"user_id" binding:"required,uuid"`
+}
+
 type GetWorkspaceByIDReq struct {
 	ID string `uri:"workspace_id" binding:"required,uuid"`
+}
+
+type IntegrationResponse struct {
+	ID          uuid.UUID `json:"id"`
+	WorkspaceID uuid.UUID `json:"workspace_id"`
+	Provider    string    `json:"provider"`
+	ProviderID  string    `json:"provider_id"`
+	ExpiresAt   time.Time `json:"expires_at"`
 }

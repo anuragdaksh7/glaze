@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"context"
+	"errors"
 	"glaze/config"
 	projectDto "glaze/dto/project"
 	userDto "glaze/dto/user"
@@ -150,4 +151,186 @@ func (s *service) GetWorkspace(c context.Context, userID uuid.UUID, workspaceID 
 	}
 
 	return res, nil
+}
+
+func (s *service) checkUserRole(userID uuid.UUID, workspaceID uuid.UUID) (models.WorkspaceRole, error) {
+	var member models.WorkspaceMember
+	err := s.DB.Where("workspace_id = ? AND user_id = ?", workspaceID, userID).First(&member).Error
+	if err != nil {
+		return "", err
+	}
+	return member.Role, nil
+}
+
+func (s *service) UpdateWorkspace(c context.Context, userID uuid.UUID, workspaceID uuid.UUID, req *workspaceDto.UpdateWorkspaceRequest) (*workspaceDto.WorkspaceResponse, error) {
+	role, err := s.checkUserRole(userID, workspaceID)
+	if err != nil {
+		return nil, errors.New("unauthorized or workspace not found")
+	}
+
+	if role != models.WorkspaceRoleOwner && role != models.WorkspaceRoleAdmin {
+		return nil, errors.New("action not allowed: must be owner or admin")
+	}
+
+	var workspace models.Workspace
+	err = s.DB.First(&workspace, "id = ?", workspaceID).Error
+	if err != nil {
+		return nil, err
+	}
+
+	workspace.Name = req.Name
+	workspace.Slug = utils.GenerateUniqueSlug(s.DB, req.Name)
+
+	if err := s.DB.Save(&workspace).Error; err != nil {
+		return nil, err
+	}
+
+	return &workspaceDto.WorkspaceResponse{
+		ID:          workspace.ID,
+		Name:        workspace.Name,
+		Slug:        workspace.Slug,
+		BillingPlan: workspace.BillingPlan,
+	}, nil
+}
+
+func (s *service) DeleteWorkspace(c context.Context, userID uuid.UUID, workspaceID uuid.UUID) error {
+	role, err := s.checkUserRole(userID, workspaceID)
+	if err != nil {
+		return errors.New("unauthorized or workspace not found")
+	}
+
+	if role != models.WorkspaceRoleOwner {
+		return errors.New("action not allowed: must be owner")
+	}
+
+	return s.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("workspace_id = ?", workspaceID).Delete(&models.WorkspaceMember{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("workspace_id = ?", workspaceID).Delete(&models.Project{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("id = ?", workspaceID).Delete(&models.Workspace{}).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (s *service) ListWorkspaceMembers(c context.Context, userID uuid.UUID, workspaceID uuid.UUID) ([]workspaceMemberDto.WorkspaceMemberDetail, error) {
+	_, err := s.checkUserRole(userID, workspaceID)
+	if err != nil {
+		return nil, errors.New("unauthorized or workspace not found")
+	}
+
+	var members []models.WorkspaceMember
+	if err := s.DB.Preload("User").Where("workspace_id = ?", workspaceID).Find(&members).Error; err != nil {
+		return nil, err
+	}
+
+	var res []workspaceMemberDto.WorkspaceMemberDetail
+	for _, member := range members {
+		res = append(res, workspaceMemberDto.WorkspaceMemberDetail{
+			WorkspaceUser: userDto.WorkspaceUser{
+				ID:             member.User.ID,
+				Name:           member.User.Name,
+				Email:          member.User.Email,
+				ProfilePicture: member.User.ProfilePicture,
+			},
+			Role: member.Role,
+		})
+	}
+	return res, nil
+}
+
+func (s *service) UpdateWorkspaceMemberRole(c context.Context, userID uuid.UUID, workspaceID uuid.UUID, targetUserID uuid.UUID, role models.WorkspaceRole) error {
+	currentUserRole, err := s.checkUserRole(userID, workspaceID)
+	if err != nil {
+		return errors.New("unauthorized or workspace not found")
+	}
+
+	if currentUserRole != models.WorkspaceRoleOwner && currentUserRole != models.WorkspaceRoleAdmin {
+		return errors.New("action not allowed: must be owner or admin")
+	}
+
+	targetUserRole, err := s.checkUserRole(targetUserID, workspaceID)
+	if err != nil {
+		return errors.New("target user not found in workspace")
+	}
+
+	if currentUserRole == models.WorkspaceRoleAdmin {
+		if targetUserRole == models.WorkspaceRoleOwner || role == models.WorkspaceRoleOwner {
+			return errors.New("action not allowed: admins cannot modify owners or promote to owner")
+		}
+	}
+
+	if userID == targetUserID {
+		return errors.New("action not allowed: cannot modify your own role")
+	}
+
+	return s.DB.Model(&models.WorkspaceMember{}).
+		Where("workspace_id = ? AND user_id = ?", workspaceID, targetUserID).
+		Update("role", role).Error
+}
+
+func (s *service) RemoveWorkspaceMember(c context.Context, userID uuid.UUID, workspaceID uuid.UUID, targetUserID uuid.UUID) error {
+	currentUserRole, err := s.checkUserRole(userID, workspaceID)
+	if err != nil {
+		return errors.New("unauthorized or workspace not found")
+	}
+
+	if currentUserRole != models.WorkspaceRoleOwner && currentUserRole != models.WorkspaceRoleAdmin {
+		return errors.New("action not allowed: must be owner or admin")
+	}
+
+	targetUserRole, err := s.checkUserRole(targetUserID, workspaceID)
+	if err != nil {
+		return errors.New("target user not found in workspace")
+	}
+
+	if currentUserRole == models.WorkspaceRoleAdmin {
+		if targetUserRole == models.WorkspaceRoleOwner {
+			return errors.New("action not allowed: admins cannot remove owners")
+		}
+	}
+
+	if userID == targetUserID {
+		return errors.New("action not allowed: cannot remove yourself, please leave instead")
+	}
+
+	return s.DB.Where("workspace_id = ? AND user_id = ?", workspaceID, targetUserID).Delete(&models.WorkspaceMember{}).Error
+}
+
+func (s *service) ListIntegrations(c context.Context, userID uuid.UUID, workspaceID uuid.UUID) ([]workspaceDto.IntegrationResponse, error) {
+	var integrations []models.Integration
+
+	if err := s.DB.Preload("Workspace").Where("workspace_id = ?", workspaceID).Find(&integrations).Error; err != nil {
+		logger.Logger.Error("list integrations failed", zap.Error(err))
+		return nil, err
+	}
+
+	var res []workspaceDto.IntegrationResponse
+	for _, integration := range integrations {
+		res = append(res, workspaceDto.IntegrationResponse{
+			ID:          integration.ID,
+			WorkspaceID: integration.WorkspaceID,
+			Provider:    integration.Provider,
+			ProviderID:  integration.ProviderID,
+			ExpiresAt:   integration.ExpiresAt,
+		})
+	}
+
+	return res, nil
+}
+
+func (s *service) ConnectGithub(c context.Context, userID uuid.UUID, workspaceID uuid.UUID) (*workspaceDto.IntegrationResponse, error) {
+	return nil, nil
+}
+
+func (s *service) GithubCallback(c context.Context, userID uuid.UUID, workspaceID uuid.UUID, code string) (*workspaceDto.IntegrationResponse, error) {
+	return nil, nil
+}
+
+func (s *service) DeleteIntegration(c context.Context, userID uuid.UUID, integrationID uuid.UUID) error {
+	return nil
 }
