@@ -15,6 +15,18 @@ BEGIN
     END IF;
 END $$;
 `)
+	DB.Exec(`
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_type WHERE typname = 'integration_provider'
+    ) THEN
+        CREATE TYPE integration_provider AS ENUM (
+            'github'
+        );
+    END IF;
+END $$;
+`)
 	err := DB.AutoMigrate(
 		&models.User{},
 		&models.Workspace{},

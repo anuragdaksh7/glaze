@@ -20,7 +20,7 @@ type Service interface {
 	UpdateWorkspaceMemberRole(c context.Context, userID uuid.UUID, workspaceID uuid.UUID, targetUserID uuid.UUID, role models.WorkspaceRole) error
 	RemoveWorkspaceMember(c context.Context, userID uuid.UUID, workspaceID uuid.UUID, targetUserID uuid.UUID) error
 	ListIntegrations(c context.Context, userID uuid.UUID, workspaceID uuid.UUID) ([]workspaceDto.IntegrationResponse, error)
-	ConnectGithub(c context.Context, userID uuid.UUID, workspaceID uuid.UUID) (*workspaceDto.IntegrationResponse, error)
-	GithubCallback(c context.Context, userID uuid.UUID, workspaceID uuid.UUID, code string) (*workspaceDto.IntegrationResponse, error)
+	ConnectGithub(c context.Context, userID uuid.UUID, workspaceID uuid.UUID) (string, error)
+	GithubCallback(c context.Context, userID uuid.UUID, code string, state string) (*workspaceDto.IntegrationResponse, error)
 	DeleteIntegration(c context.Context, userID uuid.UUID, integrationID uuid.UUID) error
 }

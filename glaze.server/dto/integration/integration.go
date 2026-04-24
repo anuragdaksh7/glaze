@@ -13,3 +13,8 @@ type IntegrationResponse struct {
 	AccountName string    `json:"accountName"` // e.g. "anurag-daksh"
 	CreatedAt   time.Time `json:"createdAt"`
 }
+
+type GithubCallbackReq struct {
+	Code  string `form:"code" json:"code" binding:"required"`
+	State string `form:"state" json:"state" binding:"required"`
+}

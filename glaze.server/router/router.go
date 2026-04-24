@@ -58,7 +58,7 @@ func InitRouter(
 		workspaceRouter.DELETE("/:workspace_id/members/:user_id", middleware.RequireAuth, workspacehandler.RemoveWorkspaceMember)
 		workspaceRouter.GET("/:workspace_id/integrations", middleware.RequireAuth, workspacehandler.GetIntegrations)
 		workspaceRouter.GET("/:workspace_id/integrations/github/connect", middleware.RequireAuth, workspacehandler.ConnectGithub)
-		workspaceRouter.GET("/:workspace_id/integrations/github/callback", middleware.RequireAuth, workspacehandler.GithubCallback)
+		workspaceRouter.GET("/integrations/github/callback", middleware.RequireAuth, workspacehandler.GithubCallback)
 		workspaceRouter.DELETE("/:workspace_id/integrations/:integration_id", middleware.RequireAuth, workspacehandler.DeleteIntegration)
 	}
 

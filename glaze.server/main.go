@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"glaze/config"
 	"glaze/global"
 	cacheinfra "glaze/infrastructure/cache"
@@ -19,7 +20,12 @@ func init() {
 		panic(err)
 	}
 
-	models.SetEncryptionKey(global.GlobalConf.EncryptKey)
+	key, err := base64.StdEncoding.DecodeString(global.GlobalConf.EncryptKey)
+	if err != nil {
+		panic(err)
+	}
+
+	models.SetEncryptionKey(key)
 	logger.InitLogger(global.GlobalConf)
 	logger.Logger.Info("Logger initialized")
 	config.ConnectDB()

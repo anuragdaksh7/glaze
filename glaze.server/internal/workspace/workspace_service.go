@@ -3,6 +3,7 @@ package workspace
 import (
 	"context"
 	"errors"
+	"fmt"
 	"glaze/config"
 	projectDto "glaze/dto/project"
 	userDto "glaze/dto/user"
@@ -11,6 +12,7 @@ import (
 	"glaze/logger"
 	"glaze/models"
 	"glaze/utils"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -323,12 +325,43 @@ func (s *service) ListIntegrations(c context.Context, userID uuid.UUID, workspac
 	return res, nil
 }
 
-func (s *service) ConnectGithub(c context.Context, userID uuid.UUID, workspaceID uuid.UUID) (*workspaceDto.IntegrationResponse, error) {
-	return nil, nil
+func (s *service) ConnectGithub(c context.Context, userID uuid.UUID, workspaceID uuid.UUID) (string, error) {
+	state := fmt.Sprintf("%s:%s", utils.GenerateRandomString(16), workspaceID)
+	url := config.GithubOauthConfig.AuthCodeURL(state)
+	return url, nil
 }
 
-func (s *service) GithubCallback(c context.Context, userID uuid.UUID, workspaceID uuid.UUID, code string) (*workspaceDto.IntegrationResponse, error) {
-	return nil, nil
+func (s *service) GithubCallback(c context.Context, userID uuid.UUID, code string, state string) (*workspaceDto.IntegrationResponse, error) {
+	parts := strings.Split(state, ":")
+	if len(parts) < 2 {
+		return nil, errors.New("invalid github state")
+	}
+	workspaceID, err := uuid.Parse(parts[1])
+	if err != nil {
+		return nil, errors.New("invalid github workspace")
+	}
+
+	token, _ := config.GithubOauthConfig.Exchange(c, code)
+
+	integration := models.Integration{
+		WorkspaceID: workspaceID,
+		Provider:    "github",
+		AccessToken: token.AccessToken,
+	}
+	err = s.DB.Create(&integration).Error
+	if err != nil {
+		return nil, err
+	}
+
+	res := &workspaceDto.IntegrationResponse{
+		ID:          integration.ID,
+		WorkspaceID: integration.WorkspaceID,
+		Provider:    integration.Provider,
+		ProviderID:  integration.ProviderID,
+		ExpiresAt:   integration.ExpiresAt,
+	}
+
+	return res, nil
 }
 
 func (s *service) DeleteIntegration(c context.Context, userID uuid.UUID, integrationID uuid.UUID) error {

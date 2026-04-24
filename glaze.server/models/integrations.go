@@ -11,14 +11,20 @@ import (
 
 var encryptionKey []byte
 
-func SetEncryptionKey(key string) {
-	encryptionKey = []byte(key)
+func SetEncryptionKey(key []byte) {
+	encryptionKey = key
 }
+
+type IntegrationProvider string
+
+const (
+	IntegrationProviderGithub IntegrationProvider = "github"
+)
 
 type Integration struct {
 	Base
 	WorkspaceID    uuid.UUID `gorm:"type:uuid;not null;index"`
-	Provider       string    `json:"provider"`   // "github"
+	Provider       string    `json:"provider" gorm:"type:integration_provider;default:'github'"`
 	ProviderID     string    `json:"providerId"` // GitHub User/Org ID
 	AccessToken    string    `json:"-"`          // ENCRYPT THIS
 	RefreshToken   string    `json:"-"`          // ENCRYPT THIS

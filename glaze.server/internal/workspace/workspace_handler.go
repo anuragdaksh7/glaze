@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"errors"
+	integrationDto "glaze/dto/integration"
 	workspaceDto "glaze/dto/workspace"
 	"glaze/logger"
 	"glaze/models"
@@ -291,8 +292,56 @@ func (h *Handler) GetIntegrations(c *gin.Context) {
 	response.OK(c, res)
 }
 
-func (h *Handler) ConnectGithub(c *gin.Context) {}
+func (h *Handler) ConnectGithub(c *gin.Context) {
+	user, err := utils.ExtractUser(c)
+	if err != nil {
+		response.Unauthorized(c, errors.New("unauthorized"))
+		return
+	}
 
-func (h *Handler) GithubCallback(c *gin.Context) {}
+	var reqUri workspaceDto.GetWorkspaceByIDReq
+	if err := c.ShouldBindUri(&reqUri); err != nil {
+		response.BadRequest(c, errors.New("invalid request params"))
+		return
+	}
+	workspaceID, err := uuid.Parse(reqUri.ID)
+	if err != nil {
+		response.BadRequest(c, errors.New("invalid workspace id"))
+		return
+	}
+
+	url, err := h.Service.ConnectGithub(c, user.ID, workspaceID)
+	if err != nil {
+		logger.Logger.Error("Failed to connect github", zap.Error(err))
+		response.InternalError(c, err)
+		return
+	}
+
+	// redirect
+	response.OK(c, map[string]string{"url": url})
+}
+
+func (h *Handler) GithubCallback(c *gin.Context) {
+	user, err := utils.ExtractUser(c)
+	if err != nil {
+		response.Unauthorized(c, errors.New("unauthorized"))
+		return
+	}
+
+	var reqParam integrationDto.GithubCallbackReq
+	if err := c.ShouldBind(&reqParam); err != nil {
+		response.BadRequest(c, errors.New("invalid request params"))
+		return
+	}
+
+	res, err := h.Service.GithubCallback(c, user.ID, reqParam.Code, reqParam.State)
+	if err != nil {
+		logger.Logger.Error("Failed to github callback", zap.Error(err))
+		response.InternalError(c, err)
+		return
+	}
+
+	response.OK(c, res)
+}
 
 func (h *Handler) DeleteIntegration(c *gin.Context) {}
