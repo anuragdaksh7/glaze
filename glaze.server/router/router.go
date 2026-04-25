@@ -3,6 +3,7 @@ package router
 import (
 	"glaze/internal/user"
 	"glaze/internal/workspace"
+	"glaze/logger"
 	"glaze/middleware"
 	"net/http"
 	"strings"
@@ -61,6 +62,25 @@ func InitRouter(
 		workspaceRouter.GET("/integrations/github/callback", middleware.RequireAuth, workspacehandler.GithubCallback)
 		workspaceRouter.DELETE("/:workspace_id/integrations/:integration_id", middleware.RequireAuth, workspacehandler.DeleteIntegration)
 		workspaceRouter.GET("/:workspace_id/integrations/github/repos", middleware.RequireAuth, workspacehandler.ListWorkspaceRepos)
+		workspaceRouter.POST("/:workspace_id/project", middleware.RequireAuth, workspacehandler.CreateProject)
+	}
+
+	webhookRouter := r.Group("/webhooks")
+	{
+		webhookRouter.POST("/github", func(c *gin.Context) {
+			eventType := c.GetHeader("X-GitHub-Event")
+
+			if eventType == "ping" {
+				c.JSON(200, gin.H{"message": "pong"})
+				return
+			}
+
+			if eventType == "push" {
+				logger.Logger.Info("Recieved github push event")
+			}
+
+			c.JSON(201, gin.H{"message": "push event"})
+		})
 	}
 
 	//mailTestingRouter := r.Group("/mail-testing")

@@ -374,3 +374,37 @@ func (h *Handler) ListWorkspaceRepos(c *gin.Context) {
 
 	response.OK(c, res)
 }
+
+func (h *Handler) CreateProject(c *gin.Context) {
+	user, err := utils.ExtractUser(c)
+	if err != nil {
+		response.Unauthorized(c, errors.New("unauthorized"))
+		return
+	}
+
+	var reqUri workspaceDto.GetWorkspaceByIDReq
+	if err := c.ShouldBindUri(&reqUri); err != nil {
+		response.BadRequest(c, errors.New("invalid request params"))
+		return
+	}
+
+	workspaceID, err := uuid.Parse(reqUri.ID)
+	if err != nil {
+		response.BadRequest(c, errors.New("invalid workspace id"))
+		return
+	}
+
+	var req workspaceDto.CreateProjectRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, errors.New("invalid request params"))
+	}
+
+	res, err := h.Service.CreateProject(c, user.ID, workspaceID, req.RepositoryID, req.Name, req.RepoFullName, req.Description, req.URL, req.IsPrivate, req.BuildCommand, req.OutputDirectory, req.DeployBranch, req.RootDirectory)
+	if err != nil {
+		logger.Logger.Error("Failed to create project", zap.Error(err))
+		response.InternalError(c, err)
+		return
+	}
+
+	response.OK(c, res)
+}

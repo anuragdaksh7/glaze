@@ -12,6 +12,7 @@ import (
 	"glaze/logger"
 	"glaze/models"
 	"glaze/utils"
+	"strconv"
 	"strings"
 	"time"
 
@@ -389,8 +390,6 @@ func (s *service) ListWorkspaceRepos(c context.Context, userID uuid.UUID, worksp
 		return nil, err
 	}
 
-	logger.Logger.Info("fetch integration", zap.String("access_token", integration.AccessToken))
-
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: integration.AccessToken},
 	)
@@ -425,4 +424,97 @@ func (s *service) ListWorkspaceRepos(c context.Context, userID uuid.UUID, worksp
 	}
 
 	return response, nil
+}
+
+func (s *service) CreateProject(c context.Context, userID uuid.UUID, workspaceID uuid.UUID, repositoryID int64, name string, repoFullName string, desc string, url string, private bool, buildCommand string, outputDir string, deployBranch string, rootDir string) (*workspaceDto.ProjectData, error) {
+	var repo = &models.Repository{
+		WorkspaceID:   workspaceID,
+		Provider:      models.IntegrationProviderGithub,
+		ExternalID:    strconv.FormatInt(repositoryID, 10),
+		Name:          name,
+		FullName:      repoFullName,
+		Description:   desc,
+		URL:           url,
+		DefaultBranch: deployBranch,
+		IsPrivate:     private,
+	}
+	err := s.DB.Create(&repo).Error
+	if err != nil {
+		logger.Logger.Error("create repo failed", zap.Error(err))
+		return nil, err
+	}
+
+	var project = &models.Project{
+		WorkspaceID:     workspaceID,
+		RepositoryID:    repo.ID,
+		Name:            name,
+		RepoFullName:    repoFullName,
+		Framework:       "",
+		BuildCommand:    buildCommand,
+		OutputDirectory: outputDir,
+		RootDirectory:   rootDir,
+		DeployBranch:    deployBranch,
+		WebhookSecret:   utils.GenerateRandomString(32),
+	}
+	err = s.DB.Create(&project).Error
+	if err != nil {
+		logger.Logger.Error("create project failed", zap.Error(err))
+		return nil, err
+	}
+
+	ghconfig := &github.HookConfig{
+		URL:         github.String("https://af1e-106-211-50-211.ngrok-free.app/webhooks/github"),
+		ContentType: github.String("json"),
+		Secret:      github.String(project.WebhookSecret), // Decrypted secret from your DB
+	}
+
+	hook := &github.Hook{
+		Name:   github.String("web"),
+		Config: ghconfig,
+		Events: []string{"push"},
+		Active: github.Bool(true),
+	}
+
+	var integration models.Integration
+
+	err = s.DB.Where("workspace_id = ? AND provider = ?", workspaceID, models.IntegrationProviderGithub).
+		Order("created_at DESC").
+		First(&integration).
+		Error
+	if err != nil {
+		logger.Logger.Error("fetch integration", zap.Error(err))
+		return nil, err
+	}
+
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: integration.AccessToken},
+	)
+	tc := oauth2.NewClient(c, ts)
+	client := github.NewClient(tc)
+
+	parts := strings.Split(project.RepoFullName, "/")
+	owner := parts[0]
+	repoName := parts[1]
+
+	_, _, err = client.Repositories.CreateHook(c, owner, repoName, hook)
+	if err != nil {
+		logger.Logger.Error("create repo hook failed", zap.Error(err))
+		return nil, err
+	}
+
+	var res = &workspaceDto.ProjectData{
+		ID:              project.ID,
+		WorkspaceID:     project.WorkspaceID,
+		RepositoryID:    project.RepositoryID,
+		Name:            project.Name,
+		RepoFullName:    project.RepoFullName,
+		Framework:       project.Framework,
+		BuildCommand:    project.BuildCommand,
+		OutputDirectory: project.OutputDirectory,
+		DeployBranch:    project.DeployBranch,
+		RootDirectory:   project.RootDirectory,
+		CreatedAt:       project.CreatedAt,
+		UpdatedAt:       project.UpdatedAt,
+	}
+	return res, nil
 }
