@@ -60,6 +60,7 @@ func InitRouter(
 		workspaceRouter.GET("/:workspace_id/integrations/github/connect", middleware.RequireAuth, workspacehandler.ConnectGithub)
 		workspaceRouter.GET("/integrations/github/callback", middleware.RequireAuth, workspacehandler.GithubCallback)
 		workspaceRouter.DELETE("/:workspace_id/integrations/:integration_id", middleware.RequireAuth, workspacehandler.DeleteIntegration)
+		workspaceRouter.GET("/:workspace_id/integrations/github/repos", middleware.RequireAuth, workspacehandler.ListWorkspaceRepos)
 	}
 
 	//mailTestingRouter := r.Group("/mail-testing")

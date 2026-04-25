@@ -23,4 +23,5 @@ type Service interface {
 	ConnectGithub(c context.Context, userID uuid.UUID, workspaceID uuid.UUID) (string, error)
 	GithubCallback(c context.Context, userID uuid.UUID, code string, state string) (*workspaceDto.IntegrationResponse, error)
 	DeleteIntegration(c context.Context, userID uuid.UUID, integrationID uuid.UUID) error
+	ListWorkspaceRepos(c context.Context, userID uuid.UUID, workspaceID uuid.UUID) ([]workspaceDto.GithubRepoResponse, error)
 }

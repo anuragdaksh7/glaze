@@ -345,3 +345,32 @@ func (h *Handler) GithubCallback(c *gin.Context) {
 }
 
 func (h *Handler) DeleteIntegration(c *gin.Context) {}
+
+func (h *Handler) ListWorkspaceRepos(c *gin.Context) {
+	user, err := utils.ExtractUser(c)
+	if err != nil {
+		response.Unauthorized(c, errors.New("unauthorized"))
+		return
+	}
+
+	var reqUri workspaceDto.GetWorkspaceByIDReq
+	if err := c.ShouldBindUri(&reqUri); err != nil {
+		response.BadRequest(c, errors.New("invalid request params"))
+		return
+	}
+
+	workspaceID, err := uuid.Parse(reqUri.ID)
+	if err != nil {
+		response.BadRequest(c, errors.New("invalid workspace id"))
+		return
+	}
+
+	res, err := h.Service.ListWorkspaceRepos(c, user.ID, workspaceID)
+	if err != nil {
+		logger.Logger.Error("Failed to list repos", zap.Error(err))
+		response.InternalError(c, err)
+		return
+	}
+
+	response.OK(c, res)
+}

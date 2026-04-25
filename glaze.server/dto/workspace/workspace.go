@@ -5,6 +5,7 @@ import (
 	workspaceMemberDto "glaze/dto/workspacemember"
 	"time"
 
+	"github.com/google/go-github/v62/github"
 	"github.com/google/uuid"
 )
 
@@ -61,4 +62,15 @@ type IntegrationResponse struct {
 	Provider    string    `json:"provider"`
 	ProviderID  string    `json:"provider_id"`
 	ExpiresAt   time.Time `json:"expires_at"`
+}
+
+type GithubRepoResponse struct {
+	ID            int64            `json:"id"`
+	Name          string           `json:"name"`
+	FullName      string           `json:"fullName"`
+	Private       bool             `json:"private"`
+	URL           string           `json:"url"`
+	Description   string           `json:"description"`
+	UpdatedAt     github.Timestamp `json:"updatedAt"`
+	DefaultBranch string           `json:"defaultBranch"`
 }

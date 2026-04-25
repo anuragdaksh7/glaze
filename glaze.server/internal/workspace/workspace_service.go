@@ -15,8 +15,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/go-github/v62/github"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"golang.org/x/oauth2"
 	"gorm.io/gorm"
 )
 
@@ -327,7 +329,10 @@ func (s *service) ListIntegrations(c context.Context, userID uuid.UUID, workspac
 
 func (s *service) ConnectGithub(c context.Context, userID uuid.UUID, workspaceID uuid.UUID) (string, error) {
 	state := fmt.Sprintf("%s:%s", utils.GenerateRandomString(16), workspaceID)
-	url := config.GithubOauthConfig.AuthCodeURL(state)
+	url := config.GithubOauthConfig.AuthCodeURL(
+		state,
+		oauth2.SetAuthURLParam("prompt", "consent"),
+	)
 	return url, nil
 }
 
@@ -343,10 +348,14 @@ func (s *service) GithubCallback(c context.Context, userID uuid.UUID, code strin
 
 	token, _ := config.GithubOauthConfig.Exchange(c, code)
 
+	logger.Logger.Info("token", zap.Any("token", token))
+
 	integration := models.Integration{
-		WorkspaceID: workspaceID,
-		Provider:    "github",
-		AccessToken: token.AccessToken,
+		WorkspaceID:  workspaceID,
+		Provider:     "github",
+		AccessToken:  token.AccessToken,
+		RefreshToken: token.RefreshToken,
+		ExpiresAt:    token.Expiry,
 	}
 	err = s.DB.Create(&integration).Error
 	if err != nil {
@@ -366,4 +375,54 @@ func (s *service) GithubCallback(c context.Context, userID uuid.UUID, code strin
 
 func (s *service) DeleteIntegration(c context.Context, userID uuid.UUID, integrationID uuid.UUID) error {
 	return nil
+}
+
+func (s *service) ListWorkspaceRepos(c context.Context, userID uuid.UUID, workspaceID uuid.UUID) ([]workspaceDto.GithubRepoResponse, error) {
+	var integration models.Integration
+
+	err := s.DB.Where("workspace_id = ? AND provider = ?", workspaceID, models.IntegrationProviderGithub).
+		Order("created_at DESC").
+		First(&integration).
+		Error
+	if err != nil {
+		logger.Logger.Error("fetch integration", zap.Error(err))
+		return nil, err
+	}
+
+	logger.Logger.Info("fetch integration", zap.String("access_token", integration.AccessToken))
+
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: integration.AccessToken},
+	)
+	tc := oauth2.NewClient(c, ts)
+	client := github.NewClient(tc)
+
+	opts := &github.RepositoryListByAuthenticatedUserOptions{
+		Affiliation: "owner,collaborator,organization_member",
+		Sort:        "updated",
+		Direction:   "desc",
+		ListOptions: github.ListOptions{PerPage: 100},
+	}
+
+	repos, _, err := client.Repositories.ListByAuthenticatedUser(c, opts)
+	if err != nil {
+		logger.Logger.Error("list repos failed", zap.Error(err))
+		return nil, errors.New("list repos failed")
+	}
+
+	var response []workspaceDto.GithubRepoResponse
+	for _, repo := range repos {
+		response = append(response, workspaceDto.GithubRepoResponse{
+			ID:            repo.GetID(),
+			Name:          repo.GetName(),
+			FullName:      repo.GetFullName(),
+			Private:       repo.GetPrivate(),
+			URL:           repo.GetURL(),
+			Description:   repo.GetDescription(),
+			UpdatedAt:     repo.GetUpdatedAt(),
+			DefaultBranch: repo.GetDefaultBranch(),
+		})
+	}
+
+	return response, nil
 }

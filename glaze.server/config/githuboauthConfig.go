@@ -17,5 +17,6 @@ func init() {
 		ClientID:     config.GithubClientID,
 		ClientSecret: config.GithubClientSecret,
 		Endpoint:     github.Endpoint,
+		Scopes:       []string{"repo", "read:user", "user:email"},
 	}
 }
