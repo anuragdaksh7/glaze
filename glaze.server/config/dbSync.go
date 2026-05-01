@@ -27,6 +27,18 @@ BEGIN
     END IF;
 END $$;
 `)
+	DB.Exec(`
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_type WHERE typname = 'deployment_status'
+    ) THEN
+        CREATE TYPE deployment_status AS ENUM (
+            'queued','cloning','building','success','failed','cancelled'
+        );
+    END IF;
+END $$;
+`)
 	err := DB.AutoMigrate(
 		&models.User{},
 		&models.Workspace{},

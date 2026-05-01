@@ -2,8 +2,8 @@ package router
 
 import (
 	"glaze/internal/user"
+	"glaze/internal/webhooks"
 	"glaze/internal/workspace"
-	"glaze/logger"
 	"glaze/middleware"
 	"net/http"
 	"strings"
@@ -17,6 +17,7 @@ var r *gin.Engine
 func InitRouter(
 	userHandler *user.Handler,
 	workspacehandler *workspace.Handler,
+	webhookHandler *webhooks.Handler,
 ) {
 	r = gin.Default()
 	//r = gin.New()
@@ -67,20 +68,7 @@ func InitRouter(
 
 	webhookRouter := r.Group("/webhooks")
 	{
-		webhookRouter.POST("/github", func(c *gin.Context) {
-			eventType := c.GetHeader("X-GitHub-Event")
-
-			if eventType == "ping" {
-				c.JSON(200, gin.H{"message": "pong"})
-				return
-			}
-
-			if eventType == "push" {
-				logger.Logger.Info("Recieved github push event")
-			}
-
-			c.JSON(201, gin.H{"message": "push event"})
-		})
+		webhookRouter.POST("/github", webhookHandler.Github)
 	}
 
 	//mailTestingRouter := r.Group("/mail-testing")

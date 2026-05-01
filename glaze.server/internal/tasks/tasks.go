@@ -1,4 +1,4 @@
-package task
+package tasks
 
 import (
 	"encoding/json"
@@ -13,14 +13,12 @@ const (
 type BuildPayload struct {
 	DeploymentID string `json:"deployment_id"`
 	RepoFullName string `json:"repo_full_name"`
-	CommitHash   string `json:"commit_hash"`
 }
 
-func NewBuildTask(deploymentID, repoFullName, commitHash string) (*asynq.Task, error) {
+func NewBuildTask(deploymentID, repoFullName string) (*asynq.Task, error) {
 	payload, err := json.Marshal(BuildPayload{
 		DeploymentID: deploymentID,
 		RepoFullName: repoFullName,
-		CommitHash:   commitHash,
 	})
 	if err != nil {
 		return nil, err

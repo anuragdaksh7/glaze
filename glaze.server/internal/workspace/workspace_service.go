@@ -463,7 +463,7 @@ func (s *service) CreateProject(c context.Context, userID uuid.UUID, workspaceID
 	}
 
 	ghconfig := &github.HookConfig{
-		URL:         github.String("https://af1e-106-211-50-211.ngrok-free.app/webhooks/github"),
+		URL:         github.String("https://5e86-2401-4900-8f80-b40b-805f-a25-51d-fd5e.ngrok-free.app/webhooks/github"),
 		ContentType: github.String("json"),
 		Secret:      github.String(project.WebhookSecret), // Decrypted secret from your DB
 	}

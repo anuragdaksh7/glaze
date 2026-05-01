@@ -24,6 +24,7 @@ type Config struct {
 	EncryptKey              string `mapstructure:"ENCRYPTION_KEY"`
 	GithubClientID          string `mapstructure:"GITHUB_CLIENT_ID"`
 	GithubClientSecret      string `mapstructure:"GITHUB_CLIENT_SECRET"`
+	RedisURL                string `mapstructure:"REDIS_URL"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

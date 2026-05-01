@@ -1,5 +1,19 @@
-
 services:
+  glaze-proxy:
+    image: lucaslorentz/caddy-docker-proxy:latest
+    container_name: glaze-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - CADDY_DOCKER_CADDYFILE_PATH=/etc/caddy/Caddyfile
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # Allows Caddy to see new containers
+      - glaze_proxy_data:/data
+    networks:
+      - glaze-network
+    restart: unless-stopped
+
   postgres:
     image: postgres:17
     container_name: glaze_postgres_container
@@ -13,15 +27,43 @@ services:
     volumes:
       - postgres_data_glaze:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    container_name: glaze_redis_container
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_glaze:/data
+
   backend:
     build: .
     container_name: glaze_backend_container
     restart: always
     ports:
       - "8080:4000"
+    environment:
+      - DB_URL=postgres://root:root@postgres:5432/glaze?sslmode=disable
+      - REDIS_URL=redis:6379 # Inside Docker, use the service name
     depends_on:
       - postgres
+      - redis
+
+  asynqmon:
+    image: hibiken/asynqmon:latest
+    container_name: glaze_asynqmon_container
+    ports:
+      - "8081:8080"
+    command: [ "--redis-addr=redis:6379" ] # 'redis' is the name of your service
+    depends_on:
+      - redis
+
+networks:
+  glaze-network:
+    name: glaze-network
+    driver: bridge
 
 volumes:
   postgres_data_glaze:
-
+  redis_data_glaze:
+  glaze_proxy_data:
