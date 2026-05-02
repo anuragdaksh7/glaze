@@ -1,0 +1,3 @@
+[submodule "glaze-fe"]
+	path = glaze-fe
+	url = https://github.com/anuragdaksh7/glass-deck
