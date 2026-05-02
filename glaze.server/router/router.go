@@ -6,7 +6,6 @@ import (
 	"glaze/internal/workspace"
 	"glaze/middleware"
 	"net/http"
-	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -25,11 +24,7 @@ func InitRouter(
 
 	r.Use(cors.New(cors.Config{
 		AllowOriginFunc: func(origin string) bool {
-			return origin == "http://localhost:5173" ||
-				origin == "https://resourcify-three.vercel.app" ||
-				origin == "https://www.linksaver.in" ||
-				origin == "https://linksaver.in" ||
-				strings.HasPrefix(origin, "chrome-extension://mfnbnegonedhppphoceeomjabelbjnnn")
+			return origin == "http://localhost:8082"
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
