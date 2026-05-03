@@ -120,7 +120,7 @@ func (s *service) GetWorkspace(c context.Context, userID uuid.UUID, workspaceID 
 		return nil, err
 	}
 
-	var projects []projectDto.ProjectDetails
+	projects := []projectDto.ProjectDetails{}
 	var workspaceMembers []workspaceMemberDto.WorkspaceMemberDetail
 
 	for _, project := range workspace.Projects {
@@ -463,7 +463,7 @@ func (s *service) CreateProject(c context.Context, userID uuid.UUID, workspaceID
 	}
 
 	ghconfig := &github.HookConfig{
-		URL:         github.String("https://5e86-2401-4900-8f80-b40b-805f-a25-51d-fd5e.ngrok-free.app/webhooks/github"),
+		URL:         github.String("https://70ee-2401-4900-8f81-e6e5-a00c-dd4d-a7d5-e86d.ngrok-free.app/webhooks/github"),
 		ContentType: github.String("json"),
 		Secret:      github.String(project.WebhookSecret), // Decrypted secret from your DB
 	}
