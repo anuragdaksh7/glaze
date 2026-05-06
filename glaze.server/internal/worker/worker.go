@@ -59,9 +59,9 @@ func generateSubdomain(repoFullName string) string {
 func (w *BuildWorker) failDeployment(deploymentID string, errMsg string) error {
 	w.db.Model(&models.Deployment{}).Where("id = ?", deploymentID).
 		Updates(map[string]interface{}{
-			"status":     models.StatusFailed,
-			"logs":       errMsg,
-			"finishedAt": time.Now(),
+			"status":      models.StatusFailed,
+			"logs":        errMsg,
+			"finished_at": time.Now(),
 		})
 	return nil
 }
@@ -90,6 +90,24 @@ func (w *BuildWorker) cleanupOldContainer(ctx context.Context, containerName str
 
 func getSafeContainerName(projectID string) string {
 	return "glaze-app-" + projectID
+}
+
+func resolveBuildRoot(buildDir, rootDir string) string {
+	rootDir = strings.TrimSpace(rootDir)
+	if rootDir == "" || rootDir == "/" || rootDir == "." {
+		return buildDir
+	}
+
+	rootDir = strings.TrimPrefix(rootDir, "./")
+	rootDir = strings.TrimPrefix(rootDir, ".\\")
+	rootDir = strings.TrimLeft(rootDir, "/\\")
+	rootDir = filepath.Clean(rootDir)
+
+	if rootDir == "." || rootDir == string(filepath.Separator) {
+		return buildDir
+	}
+
+	return filepath.Join(buildDir, rootDir)
 }
 
 func (w *BuildWorker) deployContainer(ctx context.Context, imageName string, projectID string, deploymentID string, subdomain string, logBuffer bytes.Buffer) error {
@@ -122,7 +140,7 @@ func (w *BuildWorker) deployContainer(ctx context.Context, imageName string, pro
 	w.db.Model(&models.Deployment{}).Where("id = ?", deploymentID).Updates(map[string]interface{}{
 		"status":       models.StatusSuccess,
 		"logs":         logBuffer.String(),
-		"finishedAt":   time.Now(),
+		"finished_at":  time.Now(),
 		"container_id": resp.ID,
 		"image_name":   imageName,
 	})
@@ -136,10 +154,11 @@ func (w *BuildWorker) ProcessBuildTask(ctx context.Context, t *asynq.Task) error
 
 	logger.Logger.Info("payload", zap.Any("payload", p))
 
+	startedAt := time.Now()
 	w.db.Model(&models.Deployment{}).Where("id = ?", p.DeploymentID).
 		Updates(map[string]interface{}{
-			"status":    models.StatusCloning,
-			"startedAt": time.Now(),
+			"status":     models.StatusCloning,
+			"started_at": startedAt,
 		})
 
 	buildDir := filepath.Join(os.TempDir(), p.DeploymentID)
@@ -172,7 +191,21 @@ func (w *BuildWorker) ProcessBuildTask(ctx context.Context, t *asynq.Task) error
 	//repoURL := fmt.Sprintf("https://github.com/%s.git", p.RepoFullName)
 	repoURL := fmt.Sprintf("https://%s@github.com/%s.git", integration.AccessToken, p.RepoFullName)
 
-	cmd := exec.CommandContext(ctx, "git", "clone", "--depth", "1", repoURL, buildDir)
+	branch := p.Branch
+	if branch == "" {
+		branch = deploy.Branch
+	}
+	if branch == "" {
+		branch = project.DeployBranch
+	}
+
+	cloneArgs := []string{"clone", "--depth", "1"}
+	if branch != "" {
+		cloneArgs = append(cloneArgs, "--branch", branch)
+	}
+	cloneArgs = append(cloneArgs, repoURL, buildDir)
+
+	cmd := exec.CommandContext(ctx, "git", cloneArgs...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
@@ -189,6 +222,18 @@ func (w *BuildWorker) ProcessBuildTask(ctx context.Context, t *asynq.Task) error
 
 	defer os.RemoveAll(buildDir)
 
+	if p.CommitSHA != "" {
+		cmd = exec.CommandContext(ctx, "git", "-C", buildDir, "checkout", p.CommitSHA)
+		stderr.Reset()
+		cmd.Stderr = &stderr
+		if err := cmd.Run(); err != nil {
+			cleanError := strings.ReplaceAll(stderr.String(), integration.AccessToken, "********")
+			logger.Logger.Error("Git checkout error", zap.String("error", cleanError))
+			w.failDeployment(p.DeploymentID, cleanError)
+			return nil
+		}
+	}
+
 	//tarStream, err := archive.TarWithOptions(buildDir, &archive.TarOptions{})
 	//if err != nil {
 	//	return err
@@ -197,10 +242,11 @@ func (w *BuildWorker) ProcessBuildTask(ctx context.Context, t *asynq.Task) error
 	w.db.Model(&models.Deployment{}).Where("id = ?", p.DeploymentID).Update("status", models.StatusBuilding)
 
 	w.db.Model(&models.Deployment{}).Where("id = ?", p.DeploymentID).First(&deploy)
+	buildRoot := resolveBuildRoot(buildDir, project.RootDirectory)
 
 	imageName := strings.ReplaceAll(strings.ToLower(p.RepoFullName), "/", "-")
 
-	cmd = exec.CommandContext(ctx, "nixpacks", "build", buildDir, "--name", imageName)
+	cmd = exec.CommandContext(ctx, "nixpacks", "build", buildRoot, "--name", imageName)
 
 	var logBuffer bytes.Buffer
 	cmd.Stdout = io.MultiWriter(os.Stdout, &logBuffer)
@@ -213,9 +259,10 @@ func (w *BuildWorker) ProcessBuildTask(ctx context.Context, t *asynq.Task) error
 	}
 
 	w.db.Model(&models.Deployment{}).Where("id = ?", p.DeploymentID).Updates(map[string]interface{}{
-		"status":      models.StatusSuccess,
-		"logs":        logBuffer.String(),
-		"finished_at": time.Now(),
+		"status":         models.StatusSuccess,
+		"logs":           logBuffer.String(),
+		"finished_at":    time.Now(),
+		"build_duration": int64(time.Since(startedAt).Seconds()),
 	})
 
 	safeContainerName := getSafeContainerName(deploy.ProjectID.String())

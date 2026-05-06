@@ -18,20 +18,23 @@ import (
 
 	"github.com/google/go-github/v62/github"
 	"github.com/google/uuid"
+	"github.com/hibiken/asynq"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
 )
 
 type service struct {
-	timeout time.Duration
-	DB      *gorm.DB
+	timeout     time.Duration
+	DB          *gorm.DB
+	AsynqClient *asynq.Client
 }
 
-func NewService() Service {
+func NewService(asynqClient *asynq.Client) Service {
 	return &service{
-		time.Duration(20) * time.Second,
-		config.DB,
+		timeout:     time.Duration(20) * time.Second,
+		DB:          config.DB,
+		AsynqClient: asynqClient,
 	}
 }
 

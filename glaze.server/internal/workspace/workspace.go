@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"context"
+	deploymentDto "glaze/dto/deployment"
 	workspaceDto "glaze/dto/workspace"
 	workspaceMemberDto "glaze/dto/workspacemember"
 
@@ -25,4 +26,7 @@ type Service interface {
 	DeleteIntegration(c context.Context, userID uuid.UUID, integrationID uuid.UUID) error
 	ListWorkspaceRepos(c context.Context, userID uuid.UUID, workspaceID uuid.UUID) ([]workspaceDto.GithubRepoResponse, error)
 	CreateProject(c context.Context, userID uuid.UUID, workspaceID uuid.UUID, repositoryID int64, name string, repoFullName string, desc string, url string, private bool, buildCommand string, outputDir string, deployBranch string, rootDir string) (*workspaceDto.ProjectData, error)
+	ListDeployments(c context.Context, userID uuid.UUID, workspaceID uuid.UUID, projectID uuid.UUID) ([]deploymentDto.DeploymentResponse, error)
+	GetDeployment(c context.Context, userID uuid.UUID, workspaceID uuid.UUID, projectID uuid.UUID, deploymentID uuid.UUID) (*deploymentDto.DeploymentResponse, error)
+	TriggerDeployment(c context.Context, userID uuid.UUID, workspaceID uuid.UUID, projectID uuid.UUID, req *deploymentDto.CreateDeploymentRequest) (*deploymentDto.DeploymentResponse, error)
 }

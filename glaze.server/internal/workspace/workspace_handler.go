@@ -397,6 +397,7 @@ func (h *Handler) CreateProject(c *gin.Context) {
 	var req workspaceDto.CreateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, errors.New("invalid request params"))
+		return
 	}
 
 	res, err := h.Service.CreateProject(c, user.ID, workspaceID, req.RepositoryID, req.Name, req.RepoFullName, req.Description, req.URL, req.IsPrivate, req.BuildCommand, req.OutputDirectory, req.DeployBranch, req.RootDirectory)

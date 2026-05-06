@@ -66,9 +66,9 @@ func main() {
 			log.Fatalf("Asynq server error: %v", err)
 		}
 	}()
-	
+
 	userSvc := user.NewService()
-	workspaceSvc := workspace.NewService()
+	workspaceSvc := workspace.NewService(config.RedisClient)
 	webhookSvc := webhooks.NewService(config.RedisClient)
 
 	userHandler := user.NewHandler(userSvc)

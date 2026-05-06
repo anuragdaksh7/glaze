@@ -82,7 +82,7 @@ func (s *service) GithubPush(c context.Context, payload webhookDto.PushPayload) 
 		}
 		s.DB.Create(deployment)
 
-		task, _ := tasks.NewBuildTask(deployment.ID.String(), project.RepoFullName)
+		task, _ := tasks.NewBuildTask(deployment.ID.String(), project.RepoFullName, branch, payload.After)
 		s.AsynqClient.Enqueue(task)
 
 		count++

@@ -59,6 +59,9 @@ func InitRouter(
 		workspaceRouter.DELETE("/:workspace_id/integrations/:integration_id", middleware.RequireAuth, workspacehandler.DeleteIntegration)
 		workspaceRouter.GET("/:workspace_id/integrations/github/repos", middleware.RequireAuth, workspacehandler.ListWorkspaceRepos)
 		workspaceRouter.POST("/:workspace_id/project", middleware.RequireAuth, workspacehandler.CreateProject)
+		workspaceRouter.GET("/:workspace_id/project/:project_id/deployments", middleware.RequireAuth, workspacehandler.ListDeployments)
+		workspaceRouter.GET("/:workspace_id/project/:project_id/deployments/:deployment_id", middleware.RequireAuth, workspacehandler.GetDeployment)
+		workspaceRouter.POST("/:workspace_id/project/:project_id/deployments", middleware.RequireAuth, workspacehandler.TriggerDeployment)
 	}
 
 	webhookRouter := r.Group("/webhooks")
